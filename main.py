@@ -9,7 +9,7 @@ from threading import Lock
 # CONFIG & GLOBALS
 # ------------------------------
 MAX_WORKERS = 20
-MODEL_NAME = "gpt-4o-mini"
+MODEL_NAME = "gpt-4o"
 SYSTEM_PROMPT = "You are a helpful assistant."
 
 # Updated categories
