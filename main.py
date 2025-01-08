@@ -59,116 +59,61 @@ Always choose the single best-fit category from this list:
 1. **Short Fact**
    - **Definition**: The keyword requests a specific factual answer or numeric/statistic in a direct way.
    - **Triggers**: “how many,” “how much,” “what is the average,” “dimensions,” “height,” “width,” “maximum,” “minimum,” “limit,” “date,” “year.”
-   - **Examples**: 
-     - “how much does abiraterone cost in the UK” 
-     - “what is the average window size” 
-     - “standard window sizes”
 
 2. **Comparison**
    - **Definition**: The keyword compares two or more items or concepts.
    - **Triggers**: “vs,” “versus,” “compare,” “comparison,” “which is better,” “pros and cons,” “best type.”
-   - **Examples**:
-     - “french doors vs sliding doors”
-     - “compare double-pane vs triple-pane windows”
 
 3. **Consequence**
    - **Definition**: The keyword focuses on “what happens if” or the outcome/result of an action or event.
    - **Triggers**: “what happens if,” “impact of,” “effect of,” “will X cause Y,” “will X affect Y.”
-   - **Examples**:
-     - “what happens if you leave a window open in the rain”
-     - “will drafty doors affect energy bills”
-
+   
 4. **Reason**
    - **Definition**: The keyword explicitly asks “why” something is true or happens.
    - **Triggers**: “why,” “why should,” “why would,” “why are,” “why do.”
-   - **Examples**:
-     - “why are double-pane windows more expensive”
-     - “why choose vinyl windows over aluminum”
 
 5. **Definition**
    - **Definition**: The keyword asks “what is X” or “what does X mean.”
    - **Triggers**: “what is,” “what does X mean,” “define X,” “meaning of X.”
-   - **Examples**:
-     - “what is a transom window”
-     - “what does fenestration mean”
 
 6. **Instruction**
    - **Definition**: The keyword asks “how to do something” or looks for step-by-step guidance.
    - **Triggers**: “how to,” “best way to,” “tips for,” “guide to,” “instructions,” “tutorial,” “steps to.”
-   - **Examples**:
-     - “how to replace a window screen”
-     - “best way to insulate a drafty door”
 
 7. **Bool (Yes/No)**
    - **Definition**: The keyword is explicitly asking a yes/no question.
    - **Triggers**: “can I,” “is it,” “are they,” “should I,” “do I need to,” “will it,” “does X.”
-   - **Examples**:
-     - “can I replace a window without professional help”
-     - “is replacing a door worth it”
 
 8. **Explicit Local**
    - **Definition**: The keyword references a specific location or “near me.”
    - **Triggers**: “near me,” city names (e.g., “Boise,” “London”), state abbreviations (e.g., “NY,” “CA”), ZIP codes, “local,” “in [location].”
-   - **Examples**:
-     - “window replacement near me”
-     - “patio door repair Boise ID”
    - **Important**: If any typical local trigger is present, strongly consider “explicit local. Terms like "front" don't mean it's local intent.”
 
 9. **Product**
-   - **Definition**: The keyword references a specific tangible product (a door, a window, glass type, etc.) *without focusing on installation, cost, or brand.*  
-   - **Triggers**: “window,” “door,” “bay window,” “french door,” “patio door,” “casement window,” “storm door,” “double-pane windows,” etc.  
-   - **Examples**:
-     - “storm doors”
-     - “french doors”
-     - “bay windows”
+   - **Definition**: The keyword references a specific tangible product *without focusing on installation, cost, or brand.*  
 
 10. **Service**
    - **Definition**: The keyword references an installation, replacement, or repair service.  
    - **Triggers**: “install,” “replace,” “repair,” “fix,” “maintenance,” “services,” “remodel.”  
-   - **Examples**:
-     - “window installation”
-     - “replace front door”
-     - “patio door repair services”
    - **Important**: If it strongly indicates “install,” “replace,” or “repair,” pick “service.”
 
 11. **Brand**
    - **Definition**: The keyword references a specific brand or manufacturer.  
-   - **Triggers**: “Pella,” “Andersen,” “Marvin,” “Milgard,” “Kolbe,” any known brand name.  
-   - **Examples**:
-     - “Pella windows”
-     - “Andersen sliding doors”
+   - **Triggers**: Any known brand name.  
 
 12. **Feature or Attribute**
-   - **Definition**: The keyword focuses on a specific characteristic or attribute.  
-   - **Triggers**: “energy-efficient,” “fiberglass,” “vinyl,” “weather-resistant,” “double-pane,” “triple-pane,” “low-e,” “soundproof,” “decorative,” etc.
-   - **Examples**:
-     - “energy-efficient windows”
-     - “weather-resistant doors”
-     - “double-pane glass”
+   - **Definition**: The keyword focuses on a specific characteristic or attribute of a product.  
 
 13. **Pricing**
    - **Definition**: The keyword is about cost, pricing, estimate, or affordability.  
    - **Triggers**: “price,” “cost,” “how much,” “average price,” “budget,” “estimate,” “quote,” “cheap,” “affordable.”  
-   - **Examples**:
-     - “how much does a French door cost”
-     - “average price of window installation”
-     - “window replacement cost”
    - **Important**: If a keyword has any strong cost/price triggers, prefer “pricing.”
 
 14. **Seasonal or Promotional**
    - **Definition**: The keyword references a time of year, a sale, discount, or promotion.  
    - **Triggers**: “sale,” “discount,” “promo,” “holiday,” “spring,” “fall,” “winter,” “summer,” “black friday,” “christmas,” “coupon,” “clearance.”  
-   - **Examples**:
-     - “spring sale on patio doors”
-     - “holiday discounts on French doors”
 
-15. **Other**
-   - **Definition**: The keyword is relevant to windows/doors/home improvement but doesn’t fit any other category.  
-   - **Examples**:
-     - “home fenestration ideas”
-     - “door aesthetics”
-
-16. **Uncategorized**
+15. **Uncategorized**
    - **Definition**: Use this only if the keyword clearly doesn’t fit any category or your confidence is below 10%.
    - **Examples**:
      - Irrelevant topics
