@@ -31,7 +31,7 @@ def test_openai_connection(api_key):
     try:
         # A small simple call:
         test_resp = openai.Completion.create(
-            engine="text-davinci-003",
+            engine="gpt-4o-mini",
             prompt="Say hello!",
             max_tokens=5
         )
