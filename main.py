@@ -144,6 +144,25 @@ Keyword: "{keyword}"
         st.error(f"OpenAI classification failed for '{keyword}': {e}")
         return "uncategorized", 0
 
+
+def get_classification(keyword: str) -> (str, float):
+    """
+    Thread-safe check of the classification cache before calling classify_keyword().
+    This prevents re-calling the API for duplicate keywords.
+    """
+    with cache_lock:
+        if keyword in classification_cache:
+            return classification_cache[keyword]
+
+    # Not cached yet -> classify now
+    category, confidence = classify_keyword(keyword)
+
+    with cache_lock:
+        classification_cache[keyword] = (category, confidence)
+
+    return category, confidence
+
+
 # ------------------------------
 # STREAMLIT APP
 # ------------------------------
