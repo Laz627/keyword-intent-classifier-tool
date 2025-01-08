@@ -189,7 +189,7 @@ def get_classification(keyword: str) -> (str, float):
 # STREAMLIT APP
 # ------------------------------
 def main():
-    st.title("Universal (Vertical-Agnostic) SEO Keyword Classifier")
+    st.title("SEO Keyword Intent Classifier")
 
     st.write("""
 This tool classifies your keywords into 16 generic categories (e.g., **product**, **service**, **pricing**, **comparison**, etc.).
