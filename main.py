@@ -39,6 +39,14 @@ cache_lock = Lock()
 # ------------------------------
 # OPENAI CLASSIFICATION
 # ------------------------------
+def classify_keyword(keyword: str) -> (str, float):
+    """
+    Calls OpenAI ChatCompletion to classify the keyword into one of CATEGORIES.
+    Returns: (category, confidence).
+    """
+
+    # --- IMPROVED PROMPT WITH TRIGGERS & PRIORITY INSTRUCTIONS ---
+    user_prompt = f"""
 You are analyzing SEO keywords about windows, doors, and related home improvement topics. 
 You must classify **each keyword** into exactly **one** of the following 16 categories, then provide a confidence score (0–100).
 If your confidence is below 10%, classify as "uncategorized."
