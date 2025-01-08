@@ -9,10 +9,10 @@ from threading import Lock
 # CONFIG & GLOBALS
 # ------------------------------
 MAX_WORKERS = 20
-MODEL_NAME = "gpt-4o-mini"
+MODEL_NAME = "gpt-4o-mini"  # Or "gpt-3.5-turbo", etc.
 SYSTEM_PROMPT = "You are a helpful assistant."
 
-# Updated categories
+# Universal/agnostic categories
 CATEGORIES = [
     "short fact",
     "comparison",
@@ -45,92 +45,97 @@ def classify_keyword(keyword: str) -> (str, float):
     Returns: (category, confidence).
     """
 
-    # --- IMPROVED PROMPT WITH TRIGGERS & PRIORITY INSTRUCTIONS ---
     user_prompt = f"""
-You are analyzing SEO keywords about windows, doors, and related home improvement topics. 
-You must classify **each keyword** into exactly **one** of the following 16 categories, then provide a confidence score (0–100).
-If your confidence is below 10%, classify as "uncategorized."
+You are analyzing SEO keywords from any domain (vertical-agnostic). 
+Classify **each keyword** into exactly **one** of the following 16 categories, then provide a confidence score (0–100). 
+If your confidence is below 10%, choose "uncategorized."
 
-If the keyword strongly contains triggers for multiple categories, choose the most relevant or “highest priority” category based on the user’s primary intent.
-
-Below are your categories, their definitions, common trigger words, and examples. 
-Always choose the single best-fit category from this list:
+Below are your categories, each with a brief, domain-neutral definition and typical trigger words or phrases. 
+Choose the **best-fit** category even if multiple might partially apply.
 
 1. **Short Fact**
-   - **Definition**: The keyword requests a specific factual answer or numeric/statistic in a direct way.
-   - **Triggers**: “how many,” “how much,” “what is the average,” “dimensions,” “height,” “width,” “maximum,” “minimum,” “limit,” “date,” “year.”
+   - Definition: The keyword seeks a quick, factual answer, often numeric or statistic.
+   - Typical Triggers: "how much," "how many," "average," "minimum," "maximum," "length," "size," "cost" in a direct factual context.
+   - Examples: "how many calories in an apple," "average rainfall per year"
 
 2. **Comparison**
-   - **Definition**: The keyword compares two or more items or concepts.
-   - **Triggers**: “vs,” “versus,” “compare,” “comparison,” “which is better,” “pros and cons,” “best type.”
+   - Definition: The keyword compares two or more items, ideas, or concepts.
+   - Typical Triggers: "vs," "versus," "compare," "which is better," "pros and cons," "differences between."
+   - Examples: "iPhone vs Android," "compare rechargeable vs disposable batteries"
 
 3. **Consequence**
-   - **Definition**: The keyword focuses on “what happens if” or the outcome/result of an action or event.
-   - **Triggers**: “what happens if,” “impact of,” “effect of,” “will X cause Y,” “will X affect Y.”
-   
+   - Definition: The keyword focuses on an outcome or effect of a situation or action.
+   - Typical Triggers: "what happens if," "impact of," "effect of," "will X cause Y."
+   - Examples: "what happens if I don’t water my plants," "impact of inflation on food prices"
+
 4. **Reason**
-   - **Definition**: The keyword explicitly asks “why” something is true or happens.
-   - **Triggers**: “why,” “why should,” “why would,” “why are,” “why do.”
+   - Definition: The keyword explicitly asks "why" something is true or happens.
+   - Typical Triggers: "why," "why are," "why would," "why should."
+   - Examples: "why do people prefer electric cars," "why does metal rust"
 
 5. **Definition**
-   - **Definition**: The keyword asks “what is X” or “what does X mean.”
-   - **Triggers**: “what is,” “what does X mean,” “define X,” “meaning of X.”
+   - Definition: The keyword seeks the meaning of a term or concept.
+   - Typical Triggers: "what is," "what does X mean," "define X," "meaning of X."
+   - Examples: "what is a blockchain," "define 'metaverse'"
 
 6. **Instruction**
-   - **Definition**: The keyword asks “how to do something” or looks for step-by-step guidance.
-   - **Triggers**: “how to,” “best way to,” “tips for,” “guide to,” “instructions,” “tutorial,” “steps to.”
+   - Definition: The keyword asks how to do something or wants a step-by-step guide.
+   - Typical Triggers: "how to," "steps to," "guide," "tutorial," "best way to," "tips for," "DIY," "methods to."
+   - Examples: "how to bake bread," "best way to learn programming"
 
 7. **Bool (Yes/No)**
-   - **Definition**: The keyword is explicitly asking a yes/no question.
-   - **Triggers**: “can I,” “is it,” “are they,” “should I,” “do I need to,” “will it,” “does X.”
+   - Definition: The keyword is explicitly a yes/no question.
+   - Typical Triggers: "can I," "should I," "is it," "are they," "do I need to," "does X."
+   - Examples: "can I charge my laptop with USB," "should I quit my job"
 
 8. **Explicit Local**
-   - **Definition**: The keyword references a specific location or “near me.”
-   - **Triggers**: “near me,” city names (e.g., “Boise,” “London”), state abbreviations (e.g., “NY,” “CA”), ZIP codes, “local,” “in [location].”
-   - **Important**: If any typical local trigger is present, strongly consider “explicit local. Terms like "front" don't mean it's local intent.”
+   - Definition: References a specific geographic location or uses phrases like "near me."
+   - Typical Triggers: "near me," city names, state abbreviations, country names, zip/postal codes, "in [location]."
+   - Examples: "coffee shops near me," "restaurants in Paris," "florists 90210"
 
 9. **Product**
-   - **Definition**: The keyword references a specific tangible product *without focusing on installation, cost, or brand.*  
+   - Definition: The keyword indicates or references a tangible product or item.
+   - Typical Triggers: Physical item names, "buy," "sale," "product name," "brand name" in a product context (without brand triggers below).
+   - Examples: "wireless headphones," "laptop backpack," "ceramic tiles"
 
 10. **Service**
-   - **Definition**: The keyword references an installation, replacement, or repair service.  
-   - **Triggers**: “install,” “replace,” “repair,” “fix,” “maintenance,” “services,” “remodel.”  
-   - **Important**: If it strongly indicates “install,” “replace,” or “repair,” pick “service.”
+   - Definition: The keyword references a service or action performed by a professional or company.
+   - Typical Triggers: "installation," "repair," "consulting," "maintenance," "cleaning," "services," "hire."
+   - Examples: "lawn care services," "car repair," "roof installation"
 
 11. **Brand**
-   - **Definition**: The keyword references a specific brand or manufacturer.  
-   - **Triggers**: Any known brand name.  
+   - Definition: The keyword mentions a specific brand or trademark name.
+   - Typical Triggers: Recognizable brand names (e.g., "Nike," "Apple," "McDonald's," "Xerox," "Coca-Cola"), or personal brand names.
+   - Examples: "Nike running shoes," "Apple iPhone," "Starbucks coffee"
 
 12. **Feature or Attribute**
-   - **Definition**: The keyword focuses on a specific characteristic or attribute of a product.  
+   - Definition: Focuses on a particular feature, trait, or characteristic of a product/service/idea.
+   - Typical Triggers: "energy-efficient," "low-latency," "organic," "high-speed," "portable," "durable," "vegan."
+   - Examples: "energy-efficient cars," "non-GMO snacks," "weather-resistant paint"
 
 13. **Pricing**
-   - **Definition**: The keyword is about cost, pricing, estimate, or affordability.  
-   - **Triggers**: “price,” “cost,” “how much,” “average price,” “budget,” “estimate,” “quote,” “cheap,” “affordable.”  
-   - **Important**: If a keyword has any strong cost/price triggers, prefer “pricing.”
+   - Definition: The keyword is about cost, price, or affordability.
+   - Typical Triggers: "price," "cost," "how much," "budget," "estimate," "cheap," "affordable," "quote."
+   - Examples: "cost of solar panels," "how much is Netflix per month," "cheap car insurance"
 
 14. **Seasonal or Promotional**
-   - **Definition**: The keyword references a time of year, a sale, discount, or promotion.  
-   - **Triggers**: “sale,” “discount,” “promo,” “holiday,” “spring,” “fall,” “winter,” “summer,” “black friday,” “christmas,” “coupon,” “clearance.”  
+   - Definition: The keyword references a season, sale, discount, or special promotion.
+   - Typical Triggers: "sale," "discount," "promo," "clearance," "holiday," "black friday," "coupon," "summer," "winter."
+   - Examples: "black friday deals," "summer clearance sale," "holiday promotions"
 
-15. **Uncategorized**
-   - **Definition**: Use this only if the keyword clearly doesn’t fit any category or your confidence is below 10%.
-   - **Examples**:
-     - Irrelevant topics
-     - Very ambiguous text
+15. **Other**
+   - Definition: Relevant, but does not clearly match any other category.
 
-**Classification Instructions**:
-1. Choose **exactly one** best-fit category.
-2. Provide a confidence score (0–100). If below 10, select "uncategorized."
-3. If a keyword includes strong cost or price triggers, choose "pricing."
-4. If a keyword includes strong local triggers, choose "explicit local."
-5. Otherwise, use your best judgement based on the definitions above.
+16. **Uncategorized**
+   - Definition: No clear fit or <10% confidence.
 
-Return ONLY JSON in the format:
-{{
-  "category": "<one_of_{CATEGORIES}>",
-  "confidence": <integer_0_to_100>
-}}
+**Instructions**:
+1. Return exactly one best-fit category.
+2. Provide a confidence score (0–100). If below 10, choose "uncategorized."
+3. Output **only** valid JSON:
+
+{{ "category": "<one_of_{CATEGORIES}>", "confidence": <integer_0_to_100> }}
+
 
 Keyword: "{keyword}"
 """
@@ -142,14 +147,16 @@ Keyword: "{keyword}"
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.3,
+            temperature=0.0,
         )
         content = response["choices"][0]["message"]["content"].strip()
 
+        # Attempt to parse JSON
         parsed = json.loads(content)
         category = parsed.get("category", "uncategorized").lower().strip()
         confidence = float(parsed.get("confidence", 0))
 
+        # Ensure the category is valid; if not or if confidence < 10 => 'uncategorized'
         if category not in CATEGORIES or confidence < 10:
             category = "uncategorized"
 
@@ -182,9 +189,11 @@ def get_classification(keyword: str) -> (str, float):
 # STREAMLIT APP
 # ------------------------------
 def main():
-    st.title("SEO Keyword Classifier with GPT-4o-mini")
+    st.title("Universal (Vertical-Agnostic) SEO Keyword Classifier")
     st.write("""
-    This tool classifies keywords into categories (e.g., product, service, pricing, etc.).
+    This tool classifies keywords into 16 generic categories (e.g., product, service, pricing, comparison, etc.).
+    
+    **Instructions**:
     1. Enter your OpenAI API Key.
     2. Upload a CSV with a 'keyword' column.
     3. Click 'Classify Keywords' to start.
@@ -233,18 +242,16 @@ def main():
 
                 results.append((kw, category, confidence))
 
-                # Update progress bar as a fraction of total (0.0 to 1.0)
+                # Update progress bar as a fraction of total
                 fraction_done = (i + 1) / total_keywords
                 progress_bar.progress(fraction_done)
 
         # Final push to 1.0
         progress_bar.progress(1.0)
 
-        # Combine results back into DataFrame
-        categories_list = [r[1] for r in results]
-        confidences_list = [r[2] for r in results]
-        df["category"] = categories_list
-        df["confidence"] = confidences_list
+        # Combine results into DataFrame
+        df["category"] = [r[1] for r in results]
+        df["confidence"] = [r[2] for r in results]
 
         st.success("Classification complete!")
         st.dataframe(df.head(20))
@@ -265,3 +272,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
