@@ -44,59 +44,72 @@ def classify_keyword(keyword: str) -> (str, float):
     Calls OpenAI ChatCompletion to classify the keyword into one of CATEGORIES.
     Returns: (category, confidence).
     """
-    # Updated prompt with new categories and multi-intent handling
     user_prompt = f"""
-You are analyzing a list of SEO keywords. 
-Classify each keyword into exactly one of these categories, prioritizing in this order:
-Comparison > Pricing > Feature or Attribute > Brand > Service > Product > Instruction > Explicit Local > Bool > Short Fact > Consequence > Reason > Definition > Seasonal or Promotional > Other.
+You are analyzing a list of SEO keywords. Classify each keyword into exactly one of the following categories:
 
 1. **Short Fact**  
-   - Quick factual answers, e.g., "how much does abiraterone cost in the UK".
+   - Keywords asking for a specific factual answer.  
+   - Examples: "how much does abiraterone cost in the UK", "what is the average window size".
 
 2. **Comparison**  
-   - Comparing two or more items, e.g., "curtain wall system vs. window wall system", "french doors vs sliding doors".
+   - Keywords comparing two or more items or concepts.  
+   - Examples: "french doors vs sliding doors", "best type of window glass for insulation".
 
 3. **Consequence**  
-   - Asking what will happen, e.g., "what happens to windows if not cleaned regularly".
+   - Keywords asking what will happen if something occurs.  
+   - Examples: "what happens if you leave a window open during rain", "will drafty doors affect energy bills".
 
 4. **Reason**  
-   - Asking "why" something happened, e.g., "why are sliding doors more expensive".
+   - Keywords asking "why" something happened or is true.  
+   - Examples: "why are double-pane windows more expensive", "why choose vinyl windows over aluminum".
 
 5. **Definition**  
-   - Asking "what is X", e.g., "what is a transom window".
+   - Keywords asking "what is X" or "what does X mean".  
+   - Examples: "what is a transom window", "what are storm doors".
 
 6. **Instruction**  
-   - Asking "how to" or "best way", e.g., "how to replace a window screen".
+   - Keywords asking "how to" or "best way to do something".  
+   - Examples: "how to replace a window screen", "best way to insulate a drafty door".
 
-7. **Bool**  
-   - Yes/no questions, e.g., "can I replace a door without a professional".
+7. **Bool (Yes/No)**  
+   - Keywords asking a yes/no question.  
+   - Examples: "can I replace a window without professional help", "is replacing a door worth it".
 
 8. **Explicit Local**  
-   - References "near me" or specific locations, e.g., "window replacement near me".
+   - Keywords referencing a specific location or "near me".  
+   - Examples: "window replacement near me", "patio door repair Boise ID".
 
 9. **Product**  
-   - Tangible products, e.g., "french doors", "double-pane windows".
+   - Keywords referencing tangible products, without specifying installation, replacement, or repair.  
+   - Examples: "storm doors", "french doors", "double-pane windows".
 
 10. **Service**  
-    - Installation, replacement, or repair services, e.g., "window installation".
+    - Keywords referencing installation, replacement, or repair services.  
+    - Examples: "window installation", "replace front door", "patio door repair services".
 
 11. **Brand**  
-    - Specific brands or manufacturers, e.g., "Pella windows".
+    - Keywords referencing specific brands or manufacturers.  
+    - Examples: "Pella windows", "Andersen sliding doors", "Marvin fiberglass doors".
 
 12. **Feature or Attribute**  
-    - Describes features, e.g., "energy-efficient windows".
+    - Keywords highlighting specific product features or attributes.  
+    - Examples: "energy-efficient windows", "double-pane glass", "weather-resistant doors".
 
 13. **Pricing**  
-    - Keywords about costs, e.g., "how much does a French door cost".
+    - Keywords asking about costs, pricing, or affordability.  
+    - Examples: "how much does a French door cost", "average price of window installation".
 
 14. **Seasonal or Promotional**  
-    - Seasonal or promotional relevance, e.g., "spring sale on patio doors".
+    - Keywords referencing seasonal relevance, promotions, or discounts.  
+    - Examples: "spring sale on patio doors", "holiday discounts on French doors".
 
 15. **Other**  
-    - Does not fit any of the above categories but is relevant.
+    - Keywords that don’t fit any of the above categories but are still relevant.  
 
 16. **Uncategorized**  
-    - If confidence is below 10% or the keyword does not fit any category.
+    - Use this category only if:  
+      - The keyword does not fit into any other category.  
+      - Confidence is below 10%.
 
 Return ONLY JSON in the format:
 {{
@@ -118,40 +131,18 @@ Keyword: "{keyword}"
         )
         content = response["choices"][0]["message"]["content"].strip()
 
-        # Expect JSON like {"category":"product","confidence":85}
         parsed = json.loads(content)
         category = parsed.get("category", "uncategorized").lower().strip()
         confidence = float(parsed.get("confidence", 0))
 
-        # If outside known categories or confidence below 10, force uncategorized
         if category not in CATEGORIES or confidence < 10:
             category = "uncategorized"
 
         return category, confidence
 
     except Exception as e:
-        # Log the error to Streamlit, fallback to uncategorized
         st.error(f"OpenAI classification failed for '{keyword}': {e}")
         return "uncategorized", 0
-
-
-def get_classification(keyword: str) -> (str, float):
-    """
-    Thread-safe check of the classification cache before calling classify_keyword().
-    This prevents re-calling the API for duplicate keywords.
-    """
-    with cache_lock:
-        if keyword in classification_cache:
-            return classification_cache[keyword]
-
-    # Not cached yet -> classify now
-    category, confidence = classify_keyword(keyword)
-
-    with cache_lock:
-        classification_cache[keyword] = (category, confidence)
-
-    return category, confidence
-
 
 # ------------------------------
 # STREAMLIT APP
