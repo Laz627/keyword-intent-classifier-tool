@@ -188,17 +188,60 @@ def get_classification(keyword: str) -> (str, float):
 # ------------------------------
 # STREAMLIT APP
 # ------------------------------
+OpenAI classification failed for '{keyword}': {e}")
+        return "uncategorized", 0
+
+
+def get_classification(keyword: str) -> (str, float):
+    """
+    Thread-safe check of the classification cache before calling classify_keyword().
+    This prevents re-calling the API for duplicate keywords.
+    """
+    with cache_lock:
+        if keyword in classification_cache:
+            return classification_cache[keyword]
+
+    category, confidence = classify_keyword(keyword)
+
+    with cache_lock:
+        classification_cache[keyword] = (category, confidence)
+
+    return category, confidence
+
+# ------------------------------
+# STREAMLIT APP
+# ------------------------------
 def main():
-    st.title("SEO Keyword Intent Classifier")
+    st.title("Universal (Vertical-Agnostic) SEO Keyword Classifier")
 
     st.write("""
-    This tool classifies keywords into 16 generic categories (e.g., product, service, pricing, comparison, etc.).
-    
-    **Steps**:
-    1. Enter your OpenAI API Key.
-    2. Upload a CSV with a 'keyword' column.
-    3. Click 'Classify Keywords' to start.
-    """)
+This tool classifies your keywords into 16 generic categories (e.g., **product**, **service**, **pricing**, **comparison**, etc.).
+\n**Steps**:
+1. Enter your OpenAI API Key.
+2. Upload a CSV with a **'keyword'** column.
+3. Click **"Classify Keywords"** to start.
+""")
+
+    # Provide quick "tooltips" or summary about each category in an expander
+    with st.expander("What do these categories mean?"):
+        st.markdown("""
+- **Short Fact**: Quick factual answer (e.g., "how many calories...").
+- **Comparison**: Comparing items (e.g., "X vs Y").
+- **Consequence**: Asking about outcomes/effects ("what happens if...").
+- **Reason**: Asking "why" something happens or is true.
+- **Definition**: Asking for a term's meaning ("what is X?").
+- **Instruction**: "How to..." or a guide/tips.
+- **Bool (Yes/No)**: Explicit yes/no question ("can I...?").
+- **Explicit Local**: Mentions "near me" or specific places ("in London").
+- **Product**: Tangible item queries ("laptop backpack").
+- **Service**: Service-based queries ("cleaning services").
+- **Brand**: Specific brand name ("Nike shoes").
+- **Feature or Attribute**: A characteristic or property ("vegan snacks").
+- **Pricing**: Cost, price, or affordability ("how much is...?").
+- **Seasonal or Promotional**: Sales, discounts, or seasonal references.
+- **Other**: Relevant but not fitting any other category.
+- **Uncategorized**: No clear fit or confidence < 10%.
+""")
 
     # 1) User inputs API Key
     openai_api_key = st.text_input("Enter your OpenAI API Key:", type="password")
