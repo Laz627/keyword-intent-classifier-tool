@@ -9,10 +9,10 @@ from threading import Lock
 # CONFIG & GLOBALS
 # ------------------------------
 MAX_WORKERS = 20
-MODEL_NAME = "gpt-4o-mini"  # Or "gpt-3.5-turbo", etc.
+MODEL_NAME = "gpt-4o-mini"  # Or "gpt-3.5-turbo", "gpt-4", etc.
 SYSTEM_PROMPT = "You are a helpful assistant."
 
-# Universal/agnostic categories
+# Universal (vertical-agnostic) categories
 CATEGORIES = [
     "short fact",
     "comparison",
@@ -45,94 +45,95 @@ def classify_keyword(keyword: str) -> (str, float):
     Returns: (category, confidence).
     """
 
+    # Universal, domain-agnostic prompt
     user_prompt = f"""
 You are analyzing SEO keywords from any domain (vertical-agnostic). 
-Classify **each keyword** into exactly **one** of the following 16 categories, then provide a confidence score (0–100). 
+Classify **each keyword** into exactly **one** of the following 16 categories, then provide a confidence score (0–100).
 If your confidence is below 10%, choose "uncategorized."
 
-Below are your categories, each with a brief, domain-neutral definition and typical trigger words or phrases. 
+Below are your categories, each with a brief definition and sample trigger words/phrases. 
 Choose the **best-fit** category even if multiple might partially apply.
 
 1. **Short Fact**
-   - Definition: The keyword seeks a quick, factual answer, often numeric or statistic.
-   - Typical Triggers: "how much," "how many," "average," "minimum," "maximum," "length," "size," "cost" in a direct factual context.
-   - Examples: "how many calories in an apple," "average rainfall per year"
+   - Definition: The keyword seeks a quick, factual or numeric answer.
+   - Triggers: "how much," "how many," "average," "minimum," "maximum," "size," "fact," "statistic."
+   - Examples: "how many calories in an apple," "average height of a door"
 
 2. **Comparison**
-   - Definition: The keyword compares two or more items, ideas, or concepts.
-   - Typical Triggers: "vs," "versus," "compare," "which is better," "pros and cons," "differences between."
-   - Examples: "iPhone vs Android," "compare rechargeable vs disposable batteries"
+   - Definition: Comparing two or more items or concepts.
+   - Triggers: "vs," "versus," "compare," "which is better," "pros and cons," "differences."
+   - Examples: "iPhone vs Android," "compare electric vs gas cars"
 
 3. **Consequence**
-   - Definition: The keyword focuses on an outcome or effect of a situation or action.
-   - Typical Triggers: "what happens if," "impact of," "effect of," "will X cause Y."
-   - Examples: "what happens if I don’t water my plants," "impact of inflation on food prices"
+   - Definition: Focuses on an outcome or effect ("what happens if...").
+   - Triggers: "what happens if," "impact of," "effect of," "will X cause Y."
+   - Examples: "what happens if you run out of gas," "impact of inflation"
 
 4. **Reason**
-   - Definition: The keyword explicitly asks "why" something is true or happens.
-   - Typical Triggers: "why," "why are," "why would," "why should."
-   - Examples: "why do people prefer electric cars," "why does metal rust"
+   - Definition: The keyword explicitly asks "why" something is true or occurs.
+   - Triggers: "why," "why are," "why should," "why would."
+   - Examples: "why do metals rust," "why is the sky blue"
 
 5. **Definition**
-   - Definition: The keyword seeks the meaning of a term or concept.
-   - Typical Triggers: "what is," "what does X mean," "define X," "meaning of X."
-   - Examples: "what is a blockchain," "define 'metaverse'"
+   - Definition: Seeking the meaning of a term or concept.
+   - Triggers: "what is," "define," "what does X mean," "meaning of X."
+   - Examples: "what is a blockchain," "define synergy"
 
 6. **Instruction**
    - Definition: The keyword asks how to do something or wants a step-by-step guide.
-   - Typical Triggers: "how to," "steps to," "guide," "tutorial," "best way to," "tips for," "DIY," "methods to."
-   - Examples: "how to bake bread," "best way to learn programming"
+   - Triggers: "how to," "steps to," "guide," "tutorial," "best way to," "DIY," "methods to."
+   - Examples: "how to bake bread," "steps to learn Python"
 
 7. **Bool (Yes/No)**
-   - Definition: The keyword is explicitly a yes/no question.
-   - Typical Triggers: "can I," "should I," "is it," "are they," "do I need to," "does X."
-   - Examples: "can I charge my laptop with USB," "should I quit my job"
+   - Definition: Explicit yes/no question.
+   - Triggers: "can I," "should I," "is it," "are they," "do I need to," "will it," "does X."
+   - Examples: "can I recycle plastic," "should I quit my job"
 
 8. **Explicit Local**
-   - Definition: References a specific geographic location or uses phrases like "near me."
-   - Typical Triggers: "near me," city names, state abbreviations, country names, zip/postal codes, "in [location]."
-   - Examples: "coffee shops near me," "restaurants in Paris," "florists 90210"
+   - Definition: References a specific location or "near me."
+   - Triggers: "near me," city names, state abbreviations, zip codes, "in [location]."
+   - Examples: "coffee shops near me," "restaurants in Paris," "realtor in 90210"
 
 9. **Product**
-   - Definition: The keyword indicates or references a tangible product or item.
-   - Typical Triggers: Physical item names, "buy," "sale," "product name," "brand name" in a product context (without brand triggers below).
-   - Examples: "wireless headphones," "laptop backpack," "ceramic tiles"
+   - Definition: References a tangible product or item.
+   - Triggers: "buy," "item name," "product name," "model number," "on sale" (if not promotional).
+   - Examples: "wireless headphones," "stainless steel pot set"
 
 10. **Service**
-   - Definition: The keyword references a service or action performed by a professional or company.
-   - Typical Triggers: "installation," "repair," "consulting," "maintenance," "cleaning," "services," "hire."
-   - Examples: "lawn care services," "car repair," "roof installation"
+   - Definition: References an action or offering performed by a professional or company.
+   - Triggers: "installation," "repair," "maintenance," "consulting," "cleaning," "services," "hire."
+   - Examples: "house cleaning services," "car repair shop"
 
 11. **Brand**
-   - Definition: The keyword mentions a specific brand or trademark name.
-   - Typical Triggers: Recognizable brand names (e.g., "Nike," "Apple," "McDonald's," "Xerox," "Coca-Cola"), or personal brand names.
-   - Examples: "Nike running shoes," "Apple iPhone," "Starbucks coffee"
+   - Definition: A specific brand or trademark name.
+   - Triggers: "Nike," "Apple," "Coca-Cola," "Google," "McDonald's," or any brand name.
+   - Examples: "Nike running shoes," "Apple iPhone," "Starbucks menu"
 
 12. **Feature or Attribute**
-   - Definition: Focuses on a particular feature, trait, or characteristic of a product/service/idea.
-   - Typical Triggers: "energy-efficient," "low-latency," "organic," "high-speed," "portable," "durable," "vegan."
-   - Examples: "energy-efficient cars," "non-GMO snacks," "weather-resistant paint"
+   - Definition: Focuses on a specific feature, trait, or characteristic.
+   - Triggers: "energy-efficient," "lightweight," "portable," "weather-resistant," "ergonomic," "organic."
+   - Examples: "energy-efficient appliances," "gluten-free pasta"
 
 13. **Pricing**
    - Definition: The keyword is about cost, price, or affordability.
-   - Typical Triggers: "price," "cost," "how much," "budget," "estimate," "cheap," "affordable," "quote."
-   - Examples: "cost of solar panels," "how much is Netflix per month," "cheap car insurance"
+   - Triggers: "price," "cost," "how much," "budget," "estimate," "cheap," "affordable," "quote."
+   - Examples: "cost of solar panels," "how much is Netflix," "affordable laptops"
 
 14. **Seasonal or Promotional**
-   - Definition: The keyword references a season, sale, discount, or special promotion.
-   - Typical Triggers: "sale," "discount," "promo," "clearance," "holiday," "black friday," "coupon," "summer," "winter."
-   - Examples: "black friday deals," "summer clearance sale," "holiday promotions"
+   - Definition: References a season, sale, discount, or special promotion.
+   - Triggers: "sale," "discount," "promo," "clearance," "holiday," "black friday," "coupon," "summer," "winter."
+   - Examples: "black friday deals," "summer clearance"
 
 15. **Other**
-   - Definition: Relevant, but does not clearly match any other category.
+   - Definition: Relevant but not fitting any category above.
 
 16. **Uncategorized**
-   - Definition: No clear fit or <10% confidence.
+   - Definition: No clear fit or confidence <10%.
 
 **Instructions**:
 1. Return exactly one best-fit category.
-2. Provide a confidence score (0–100). If below 10, choose "uncategorized."
-3. Output **only** valid JSON:
+2. Provide a confidence (0–100). If <10, choose "uncategorized."
+3. Return **only** valid JSON:
 
 {{ "category": "<one_of_{CATEGORIES}>", "confidence": <integer_0_to_100> }}
 
@@ -184,22 +185,22 @@ def get_classification(keyword: str) -> (str, float):
 
     return category, confidence
 
-
 # ------------------------------
 # STREAMLIT APP
 # ------------------------------
 def main():
-    st.title("Universal (Vertical-Agnostic) SEO Keyword Classifier")
+    st.title("Universal (Vertical-Agnostic) SEO Keyword Classifier - FIXED ORDER")
+
     st.write("""
     This tool classifies keywords into 16 generic categories (e.g., product, service, pricing, comparison, etc.).
     
-    **Instructions**:
+    **Steps**:
     1. Enter your OpenAI API Key.
     2. Upload a CSV with a 'keyword' column.
     3. Click 'Classify Keywords' to start.
     """)
 
-    # (A) User inputs API Key
+    # 1) User inputs API Key
     openai_api_key = st.text_input("Enter your OpenAI API Key:", type="password")
     if not openai_api_key:
         st.warning("Please enter your API key.")
@@ -207,7 +208,7 @@ def main():
     else:
         openai.api_key = openai_api_key
 
-    # (B) Upload CSV
+    # 2) Upload CSV
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
     if uploaded_file is None:
         st.stop()
@@ -219,49 +220,53 @@ def main():
 
     keywords = df["keyword"].fillna("").astype(str).tolist()
 
-    # (C) Classify Button
+    # 3) Classify Button
     if st.button("Classify Keywords"):
         st.write("Classifying keywords...")
 
-        results = []
         total_keywords = len(keywords)
+        # Prepare a results list of the same length as keywords
+        # so we can preserve the original row order
+        results = [None] * total_keywords
         progress_bar = st.progress(0.0)
 
-        # Use ThreadPoolExecutor to classify in parallel
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-            future_to_kw = {
-                executor.submit(get_classification, kw): kw for kw in keywords
-            }
-            for i, future in enumerate(concurrent.futures.as_completed(future_to_kw)):
-                kw = future_to_kw[future]
+            # Map each future to its index in the original list
+            future_to_index = {}
+            for idx, kw in enumerate(keywords):
+                future = executor.submit(get_classification, kw)
+                future_to_index[future] = idx
+
+            completed = 0
+            for future in concurrent.futures.as_completed(future_to_index):
+                idx = future_to_index[future]
                 try:
                     category, confidence = future.result()
                 except Exception as exc:
-                    st.error(f"Unexpected error for '{kw}': {exc}")
+                    st.error(f"Unexpected error for '{keywords[idx]}': {exc}")
                     category, confidence = "uncategorized", 0
 
-                results.append((kw, category, confidence))
+                # Place the result in the correct slot
+                results[idx] = (category, confidence)
 
-                # Update progress bar as a fraction of total
-                fraction_done = (i + 1) / total_keywords
+                # Update the progress bar
+                completed += 1
+                fraction_done = completed / total_keywords
                 progress_bar.progress(fraction_done)
 
-        # Final push to 1.0
-        progress_bar.progress(1.0)
-
-        # Combine results into DataFrame
-        df["category"] = [r[1] for r in results]
-        df["confidence"] = [r[2] for r in results]
+        # Now 'results' is aligned with the original index
+        df["category"] = [r[0] for r in results]
+        df["confidence"] = [r[1] for r in results]
 
         st.success("Classification complete!")
         st.dataframe(df.head(20))
 
-        # Bar chart of category distribution
+        # Show category distribution
         st.subheader("Category Distribution")
         category_counts = df["category"].value_counts()
         st.bar_chart(category_counts)
 
-        # Download the CSV
+        # Downloadable CSV
         csv_output = df.to_csv(index=False)
         st.download_button(
             label="Download Classified CSV",
@@ -272,5 +277,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
