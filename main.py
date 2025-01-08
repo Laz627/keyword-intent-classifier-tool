@@ -1,14 +1,7 @@
-import streamlit as st
-import openai
-import pandas as pd
-import concurrent.futures
-import json
-from threading import Lock
-
 # ------------------------------
 # CONFIG & GLOBALS
 # ------------------------------
-MAX_WORKERS = 20
+MAX_WORKERS = 25
 MODEL_NAME = "gpt-4o-mini"
 SYSTEM_PROMPT = "You are a helpful assistant."
 
@@ -44,7 +37,7 @@ def classify_keyword(keyword: str) -> (str, float):
     Calls OpenAI ChatCompletion to classify the keyword into one of CATEGORIES.
     Returns: (category, confidence).
     """
-    user_prompt = f"""
+user_prompt = f"""
 You are analyzing a list of SEO keywords. **Assign each keyword to exactly one of the following 16 categories** and provide a confidence score (0–100). If your confidence is below 10%, classify the keyword as **uncategorized**. 
 
 When deciding between multiple applicable categories, choose the single category that best fits the primary intent of the keyword.  
@@ -159,14 +152,13 @@ When deciding between multiple applicable categories, choose the single category
 16. **Uncategorized**  
     - Definition: If it clearly does not fit in any category, or your confidence in categorizing it is below 10%.  
     - Clues: The query is unclear or irrelevant.  
+    - Confidence is below 10%.
 
-**Instructions**:  
-1. Pick exactly one best-fit category from the list above.  
-2. Assign a confidence score (0–100). If below 10, select “uncategorized.”  
-3. Return ONLY valid JSON in the format:
-
-
-Do not include any additional text.  
+Return ONLY JSON in the format:
+{{
+  "category": "<one_of_{CATEGORIES}>",
+  "confidence": <integer_0_to_100>
+}}
 
 Keyword: "{keyword}"
 """
@@ -186,7 +178,6 @@ Keyword: "{keyword}"
         category = parsed.get("category", "uncategorized").lower().strip()
         confidence = float(parsed.get("confidence", 0))
 
-        # Ensure the category is valid; if not or if confidence < 10 => 'uncategorized'
         if category not in CATEGORIES or confidence < 10:
             category = "uncategorized"
 
