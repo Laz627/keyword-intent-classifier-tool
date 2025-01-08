@@ -143,7 +143,6 @@ def get_classification(keyword: str) -> (str, float):
 def main():
     st.title("SEO Keyword Classifier with GPT-4o-mini")
     st.write("""
-    Created by: Brandon Lazovic.
     This tool classifies keywords into categories (product, service, local, etc.).
     1. Enter your OpenAI API Key.
     2. Upload a CSV with a 'keyword' column.
