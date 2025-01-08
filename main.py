@@ -142,7 +142,7 @@ Keyword: "{keyword}"
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.0,
+            temperature=0.3,
         )
         content = response["choices"][0]["message"]["content"].strip()
 
