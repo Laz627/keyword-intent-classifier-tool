@@ -112,7 +112,7 @@ Always choose the single best-fit category from this list:
    - **Examples**:
      - “window replacement near me”
      - “patio door repair Boise ID”
-   - **Important**: If any typical local trigger is present, strongly consider “explicit local.”
+   - **Important**: If any typical local trigger is present, strongly consider “explicit local. Terms like "front" don't mean it's local intent.”
 
 9. **Product**
    - **Definition**: The keyword references a specific tangible product (a door, a window, glass type, etc.) *without focusing on installation, cost, or brand.*  
