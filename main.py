@@ -30,7 +30,7 @@ def test_openai_connection(api_key):
     st.write("Testing connection to OpenAI ...")
     try:
         # A small simple call:
-        test_resp = openai.Completion.create(
+        test_resp = openai.ChatCompletion.create(
             engine="gpt-4o-mini",
             prompt="Say hello!",
             max_tokens=5
