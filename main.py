@@ -6,7 +6,7 @@ import json
 
 # Constants
 MAX_WORKERS = 20
-MODEL_NAME = "gpt-4o-mini"  # Make sure your account actually has access to this
+MODEL_NAME = "gpt-4o-mini"
 SYSTEM_PROMPT = "You are a helpful assistant."
 
 CATEGORIES = [
@@ -24,25 +24,31 @@ CATEGORIES = [
 
 def test_openai_connection(api_key):
     """
-    Optional function to verify the OpenAI key works before classification.
+    Optional function to verify the OpenAI key works with gpt-4o-mini
+    by calling the ChatCompletion endpoint.
     """
     openai.api_key = api_key
-    st.write("Testing connection to OpenAI ...")
+    st.write("Testing connection to OpenAI with gpt-4o-mini ...")
     try:
-        # A small simple call:
-        test_resp = https://api.openai.com/v1/chat/completions(
-            engine="gpt-4o-mini",
-            prompt="Say hello!",
-            max_tokens=5
+        # A small simple call to gpt-4o-mini:
+        test_resp = openai.ChatCompletion.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Say hello!"}
+            ],
+            temperature=0.0,
+            max_tokens=10
         )
         st.success("OpenAI call was successful!")
-        st.write("Sample Response:", test_resp.choices[0].text.strip())
+        answer = test_resp.choices[0].message.content.strip()
+        st.write("Sample Response:", answer)
     except Exception as e:
         st.error(f"OpenAI call failed with error: {e}")
 
 def classify_keyword(keyword: str) -> (str, float):
     """
-    Calls OpenAI to classify the keyword.
+    Calls OpenAI ChatCompletion (gpt-4o-mini) to classify the keyword.
     Returns: (category, confidence).
     """
     user_prompt = f"""
@@ -70,7 +76,7 @@ Keyword: "{keyword}"
 """
 
     try:
-        response = https://api.openai.com/v1/chat/completions(
+        response = openai.ChatCompletion.create(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -91,7 +97,6 @@ Keyword: "{keyword}"
 
     except Exception as e:
         # Log the error so we know what's happening
-        # Replace 'st.error' with 'print' if you prefer console logs
         st.error(f"OpenAI classification failed for keyword '{keyword}': {e}")
         return "uncategorized", 0
 
@@ -99,8 +104,9 @@ def main():
     st.title("SEO Keyword Classifier with GPT-4o-mini")
     st.write("""
     1. Enter your OpenAI API Key.
-    2. Upload a CSV (must have a 'keyword' column).
-    3. Press the button to classify.
+    2. (Optional) Test your connection to GPT-4o-mini.
+    3. Upload a CSV (must have a 'keyword' column).
+    4. Press the "Classify Keywords" button to classify.
     """)
 
     # 1. User inputs API Key
@@ -132,7 +138,6 @@ def main():
     if st.button("Classify Keywords"):
         st.write("Classifying keywords, please wait...")
 
-        # Use ThreadPoolExecutor to parallelize
         results = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             future_to_keyword = {
@@ -147,7 +152,7 @@ def main():
                     category, confidence = "uncategorized", 0
                 results.append((kw, category, confidence))
 
-        # 4. Attach results back to DataFrame
+        # Combine results back into the DataFrame
         classification_map = {}
         for (kw, cat, conf) in results:
             if kw not in classification_map:
