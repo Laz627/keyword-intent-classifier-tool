@@ -86,7 +86,7 @@ Keyword: "{keyword}"
                 {"role": "developer", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            temperature=0.0,
+            temperature=0.5,
         )
         # Parse out the model output
         content = response["choices"][0]["message"]["content"].strip()
