@@ -44,72 +44,126 @@ def classify_keyword(keyword: str) -> (str, float):
     Calls OpenAI ChatCompletion to classify the keyword into one of CATEGORIES.
     Returns: (category, confidence).
     """
-    user_prompt = f"""
-You are analyzing a list of SEO keywords. Classify each keyword into exactly one of the following categories:
+user_prompt = f"""
+You are analyzing a list of SEO keywords. **Assign each keyword to exactly one of the following 16 categories** and provide a confidence score (0–100). If your confidence is below 10%, classify the keyword as **uncategorized**. 
+
+When deciding between multiple applicable categories, choose the single category that best fits the primary intent of the keyword.  
+
+**Categories**:
 
 1. **Short Fact**  
-   - Keywords asking for a specific factual answer.  
-   - Examples: "how much does abiraterone cost in the UK", "what is the average window size".
+   - Definition: The keyword asks for a specific factual answer or numeric/statistic (e.g., cost, measurement, size, date) in a direct way.  
+   - Clues: Often includes phrasing like “how many,” “how much,” “what is the average.”  
+   - Examples:  
+     - “how much does abiraterone cost in the UK”  
+     - “what is the average window size”
 
 2. **Comparison**  
-   - Keywords comparing two or more items or concepts.  
-   - Examples: "french doors vs sliding doors", "best type of window glass for insulation".
+   - Definition: The keyword compares two or more products, services, or concepts.  
+   - Clues: Look for “vs,” “versus,” “compare,” “best type of,” “which is better,” etc.  
+   - Examples:  
+     - “french doors vs sliding doors”  
+     - “best type of window glass for insulation”
 
 3. **Consequence**  
-   - Keywords asking what will happen if something occurs.  
-   - Examples: "what happens if you leave a window open during rain", "will drafty doors affect energy bills".
+   - Definition: The keyword focuses on outcomes or results of an action or situation (often “what happens if…”).  
+   - Clues: Keywords like “what happens if,” “impact of,” or “will X affect Y.”  
+   - Examples:  
+     - “what happens if you leave a window open during rain”  
+     - “will drafty doors affect energy bills”
 
 4. **Reason**  
-   - Keywords asking "why" something happened or is true.  
-   - Examples: "why are double-pane windows more expensive", "why choose vinyl windows over aluminum".
+   - Definition: The keyword asks “why” something happens or is true.  
+   - Clues: Often starts with “why” or “why should/why would.”  
+   - Examples:  
+     - “why are double-pane windows more expensive”  
+     - “why choose vinyl windows over aluminum”
 
 5. **Definition**  
-   - Keywords asking "what is X" or "what does X mean".  
-   - Examples: "what is a transom window", "what are storm doors".
+   - Definition: The keyword asks for an explanation of “what is X” or “what does X mean.”  
+   - Clues: Often starts with “what is,” “what does X mean,” “define X.”  
+   - Examples:  
+     - “what is a transom window”  
+     - “what are storm doors”
 
 6. **Instruction**  
-   - Keywords asking "how to" or "best way to do something".  
-   - Examples: "how to replace a window screen", "best way to insulate a drafty door".
+   - Definition: The keyword asks “how to do something,” or looks for step-by-step guidance.  
+   - Clues: Often includes “how to,” “best way to,” “tips to,” “guide for.”  
+   - Examples:  
+     - “how to replace a window screen”  
+     - “best way to insulate a drafty door”
 
 7. **Bool (Yes/No)**  
-   - Keywords asking a yes/no question.  
-   - Examples: "can I replace a window without professional help", "is replacing a door worth it".
+   - Definition: The keyword is explicitly asking a yes/no question.  
+   - Clues: Often starts with “can I,” “is it,” “should I,” “do I need to.”  
+   - Examples:  
+     - “can I replace a window without professional help”  
+     - “is replacing a door worth it”
 
 8. **Explicit Local**  
-   - Keywords referencing a specific location or "near me".  
-   - Examples: "window replacement near me", "patio door repair Boise ID".
+   - Definition: The keyword references a specific geographic location or uses “near me.”  
+   - Clues: Mentions city/region names, “near me,” “in [location].”  
+   - Examples:  
+     - “window replacement near me”  
+     - “patio door repair Boise ID”
 
 9. **Product**  
-   - Keywords referencing tangible products, without specifying installation, replacement, or repair.  
-   - Examples: "storm doors", "french doors", "double-pane windows".
+   - Definition: The keyword references a specific tangible product (without focusing on installation/repair).  
+   - Clues: Typically names door/window types or related items.  
+   - Examples:  
+     - “storm doors”  
+     - “french doors”  
+     - “double-pane windows”
 
 10. **Service**  
-    - Keywords referencing installation, replacement, or repair services.  
-    - Examples: "window installation", "replace front door", "patio door repair services".
+    - Definition: The keyword references a service such as installation, repair, or replacement.  
+    - Clues: Includes words like “install,” “replace,” “repair,” “services.”  
+    - Examples:  
+      - “window installation”  
+      - “replace front door”  
+      - “patio door repair services”
 
 11. **Brand**  
-    - Keywords referencing specific brands or manufacturers.  
-    - Examples: "Pella windows", "Andersen sliding doors", "Marvin fiberglass doors".
+    - Definition: The keyword specifically references a brand or manufacturer.  
+    - Clues: Mentions names like “Pella,” “Andersen,” “Marvin,” or other company names.  
+    - Examples:  
+      - “Pella windows”  
+      - “Andersen sliding doors”  
+      - “Marvin fiberglass doors”
 
 12. **Feature or Attribute**  
-    - Keywords highlighting specific product features or attributes.  
-    - Examples: "energy-efficient windows", "double-pane glass", "weather-resistant doors".
+    - Definition: The keyword focuses on a specific feature or attribute of a product.  
+    - Clues: Mentions qualities like “energy-efficient,” “weather-resistant,” “fiberglass,” “double-pane,” etc.  
+    - Examples:  
+      - “energy-efficient windows”  
+      - “weather-resistant doors”  
+      - “double-pane glass”
 
 13. **Pricing**  
-    - Keywords asking about costs, pricing, or affordability.  
-    - Examples: "how much does a French door cost", "average price of window installation".
+    - Definition: The keyword is about cost, pricing, or affordability.  
+    - Clues: Often includes “price,” “cost,” “how much,” “average price,” “budget.”  
+    - Examples:  
+      - “how much does a French door cost”  
+      - “average price of window installation”
 
 14. **Seasonal or Promotional**  
-    - Keywords referencing seasonal relevance, promotions, or discounts.  
-    - Examples: "spring sale on patio doors", "holiday discounts on French doors".
+    - Definition: The keyword references a time of year, sale, discount, or promotion.  
+    - Clues: “sale,” “discount,” “promo,” “seasonal,” “holiday,” “spring/fall.”  
+    - Examples:  
+      - “spring sale on patio doors”  
+      - “holiday discounts on French doors”
 
 15. **Other**  
-    - Keywords that don’t fit any of the above categories but are still relevant.  
+    - Definition: The keyword is relevant to doors/windows (or your domain), but doesn’t fit any other category.  
 
 16. **Uncategorized**  
-    - Use this category only if:  
-      - The keyword does not fit into any other category.  
-      - Confidence is below 10%.
+    - Definition: If it clearly does not fit in any category, or your confidence in categorizing it is below 10%.  
+    - Clues: The query is unclear or irrelevant.  
+
+**Instructions**:  
+1. Pick exactly one best-fit category from the list above.  
+2. Assign a confidence score (0–100). If below 10, select “uncategorized.”  
+3. Return ONLY valid JSON in the format:
 
 Return ONLY JSON in the format:
 {{
