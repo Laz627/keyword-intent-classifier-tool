@@ -35,17 +35,48 @@ def classify_keyword(keyword: str) -> (str, float):
     Returns a tuple: (category, confidence).
     If the model's confidence is below 20%, or it cannot assign a known category, returns 'uncategorized'.
     """
-    # Build the user prompt
+    # Build the user prompt with more detailed instructions
     user_prompt = f"""
-Classify this SEO keyword into one of the following categories:
-{", ".join(CATEGORIES)}.
+You are analyzing a list of SEO keywords. Your goal is to classify each keyword into exactly one of the following categories:
 
-Keyword: '{keyword}'
+1. short fact
+   Example: "how much does abiraterone cost in the uk"
 
-Requirements:
-- Return JSON in the format: {{"category": "<one_of_{CATEGORIES}>", "confidence": <int_from_0_to_100>}}
-- If the model is less than 20% confident, return 'uncategorized' as category and a confidence < 20.
-- Only return JSON. No explanations.
+2. other
+   Example: "what do chefs say about air fryers"
+
+3. comparison
+   Example: "curtain wall system vs. window wall system"
+
+4. consequence
+   Example: "what happens to asparagus if you let it grow"
+
+5. reason
+   Example: "why was abilify taken off the market"
+
+6. definition
+   Example: "what is a birthday costume"
+
+7. instruction
+   Example: "what is the best way to cook an artichoke"
+
+8. bool
+   Example: "can I become an agile coach with no experience"
+
+9. explicit local
+   Examples: "window replacement near me", "window replacement Boise, ID"
+
+If the keyword does not fit any of the above categories, or if you are less than 20% confident in your classification, choose "uncategorized".
+
+Return only JSON in the exact format:
+{{
+  "category": "<one_of_{CATEGORIES}>",
+  "confidence": <integer_0_to_100>
+}}
+
+No additional text or explanation.
+
+Keyword: "{keyword}"
 """
 
     try:
@@ -61,24 +92,21 @@ Requirements:
         content = response["choices"][0]["message"]["content"].strip()
         
         # Expecting a JSON like: {"category":"comparison","confidence":85}
-        # Attempt to parse as JSON:
         parsed = json.loads(content)
         
         category = parsed.get("category", "uncategorized").lower().strip()
         confidence = float(parsed.get("confidence", 0))
 
-        # Basic fallback check:
+        # Basic fallback checks:
         if category not in CATEGORIES:
             category = "uncategorized"
         if confidence < 20:
-            # if confidence is too low, override the category
             category = "uncategorized"
 
         return category, confidence
 
-    except Exception as e:
-        # For any error (JSON parse or API error), return uncategorized
-        # and a confidence of 0
+    except Exception:
+        # For any error (JSON parse or API error), return 'uncategorized' and confidence=0
         return "uncategorized", 0
 
 
@@ -129,27 +157,23 @@ def main():
             kw = future_to_keyword[future]
             try:
                 category, confidence = future.result()
-            except Exception as exc:
+            except Exception:
                 category, confidence = "uncategorized", 0.0
             results.append((kw, category, confidence))
 
     # 4. Combine results back into a DataFrame
     # We'll preserve the original row order by building a dictionary
-    # mapping from keyword to (category, confidence).
-    # NOTE: If you have identical keywords repeated, you may want
-    # to handle them carefully, possibly by using index-based merges.
     classification_map = {}
     for (kw, cat, conf) in results:
         if kw not in classification_map:
             classification_map[kw] = []
         classification_map[kw].append((cat, conf))
 
-    # Because of duplicates, let's handle them in the same order as the original DataFrame
     categories_list = []
     confidences_list = []
     for kw in keywords:
+        # Pop from the classification_map so duplicates are handled in sequence
         cat_conf_list = classification_map.get(kw, [("uncategorized", 0.0)])
-        # Just pick the first classification if duplicates exist
         cat, conf = cat_conf_list.pop(0)
         categories_list.append(cat)
         confidences_list.append(conf)
@@ -158,7 +182,7 @@ def main():
     df["confidence"] = confidences_list
 
     # 5. Downloadable CSV
-    st.write("Classification complete!")
+    st.write("Classification complete! Preview:")
     st.dataframe(df.head(20))  # Show first 20 rows for preview
 
     # Provide a download button
