@@ -30,7 +30,7 @@ def test_openai_connection(api_key):
     st.write("Testing connection to OpenAI ...")
     try:
         # A small simple call:
-        test_resp = openai.ChatCompletion.create(
+        test_resp = https://api.openai.com/v1/chat/completions(
             engine="gpt-4o-mini",
             prompt="Say hello!",
             max_tokens=5
@@ -70,7 +70,7 @@ Keyword: "{keyword}"
 """
 
     try:
-        response = openai.ChatCompletion.create(
+        response = https://api.openai.com/v1/chat/completions(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
